@@ -1,27 +1,18 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <signal.h>
+/* MQTT Subscriber Library
+ *
+ *              Author : Viki (a) Vignesh Natarajan
+ *              Firma  : vikilabs.org               
+ */
+
 #include <unistd.h>
-#include "MQTTClient.h"
-
-#define MQTT_BROKER_ADDRESS     "tcp://mqtt.eclipse.org:1883"
-#define MQTT_CLIENT_ID    "client_1"
-#define MQTT_TOPIC       "mytopic"
-#define CONNECT_TIMEOUT         10000L
-#define DISCONNECT_TIMEOUT      10000L
-#define QOS         1
-
+#include "mqtt_subscriber.h"
+#include <pthread.h>
 
 volatile MQTTClient_deliveryToken delivered_token;
+static MQTTClient mqtt_subscriber;
+pthread_t subscriber_thread;
 
-int terminate_application = 0;
-
-void signal_handler(int ret) 
-{
-    printf("[ mqtt_client ] 'ctrl + c' signal received\n");
-    terminate_application = 1;
-}
+int exit_mqtt_subscriber = 0;
 
 int CB_MessageArrived(void *context, char *topic_name, int topic_len, MQTTClient_message *message)
 {
@@ -57,19 +48,33 @@ void CB_ConnectionLost(void *context, char *reason)
     printf("[ mqtt_client ] connection lost ( %s )\n", reason);
 }
 
-int main(int argc, char* argv[])
+int mqtt_subscribe(mqtt_sub_params_t *conn)
+{
+    int ret;
+    ret = pthread_create(&subscriber_thread, NULL, mqtt_subscribe_thread, (void *) conn);
+    return ret;
+}
+
+void *mqtt_subscribe_thread( void *args)
 {
     int ret;
     
-    signal(SIGINT, signal_handler);
+    mqtt_sub_params_t *conn = (mqtt_sub_params_t *) args;
 
-
-
-    MQTTClient mqtt_subscriber;
     MQTTClient_connectOptions conn_params = MQTTClient_connectOptions_initializer;
-    MQTTClient_create(&mqtt_subscriber, MQTT_BROKER_ADDRESS, MQTT_CLIENT_ID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+    MQTTClient_create(&mqtt_subscriber, conn->address, conn->client_id, MQTTCLIENT_PERSISTENCE_NONE, NULL);
     conn_params.keepAliveInterval = 10;
     conn_params.cleansession = 1;
+
+    if(conn->uname){
+        conn_params.username = conn->uname;
+    }
+
+    if(conn->passwd){
+        conn_params.password = conn->passwd;
+    }
+
+
     MQTTClient_setCallbacks(mqtt_subscriber, NULL, CB_ConnectionLost, CB_MessageArrived, CB_MessageDelivered);
 
     ret = MQTTClient_connect(mqtt_subscriber, &conn_params);
@@ -81,16 +86,25 @@ int main(int argc, char* argv[])
     }
 
     printf("\n");
-    printf("[ mqtt_client ] subscribing to topic %s\n", MQTT_TOPIC);
+    printf("[ mqtt_client ] subscribing to topic %s\n", conn->topic);
    
-    MQTTClient_subscribe(mqtt_subscriber, MQTT_TOPIC, QOS);
+    MQTTClient_subscribe(mqtt_subscriber, conn->topic, QOS);
     
-    printf("[ mqtt_client ] press 'ctrl + c' to quit application\n");
     
-    while(terminate_application == 0){}
-    
-    MQTTClient_disconnect(mqtt_subscriber, DISCONNECT_TIMEOUT);
+    while(exit_mqtt_subscriber == 0){
+        sleep(1);
+    }
+
+    printf("[ mqtt_client ] disconnecting mqtt subscriber\n");
+    MQTTClient_disconnect(mqtt_subscriber, TIMEOUT);
     MQTTClient_destroy(&mqtt_subscriber);
-    
-    return ret;
+    printf("[ mqtt_client ] mqtt subscriber disconnected\n");
+    pthread_exit(NULL); 
+}
+
+int mqtt_unsubscribe()
+{
+    exit_mqtt_subscriber = 1;
+    pthread_join(subscriber_thread, NULL); 
+    return 0;
 }

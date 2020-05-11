@@ -1,6 +1,6 @@
-## Simple MQTT Subscriber and Publisher using PAHO Library 
+## Basic MQTT Subscriber, Publisher library based on PAHO Library
 
-A simple MQTT Subscriber, Publisher written in C with PAHO Library
+Basic MQTT Subscriber, Publisher library based on PAHO Library
 
 #### STEP 1 :  PAHO MQTT CLIENT Library Installation 
 
@@ -29,54 +29,15 @@ A simple MQTT Subscriber, Publisher written in C with PAHO Library
     4. sudo make install
 
 
-#### STEP 2 :  TESTING PAHO MQTT CLIENT IN TERMINAL 
+#### STEP 2 : Compiling the library
 
-###### Terminal 1
-    
-    In terminal 1, run mqtt subscriber
+    1. cd src
+    2. make
+    3. shared library and static library is generated at "../lib" directory
 
-    $paho_c_sub -t topic_name --connection <ipaddress>:<port>
+#### STEP 3: Example programs using the library
 
-    Example:
-
-    $paho_c_sub -t my_topic --connection mqtt.eclipse.org:1883
-
-
-###### Terminal 2
-    
-    In terminal 2, run mqtt publisher
-
-    $paho_c_pub -t topic_name --connection <ipaddress>:<port> -m <message to send>
-
-    Example:
-
-    $paho_c_pub -t my_topic --connection mqtt.eclipse.org:1883 -m "Hello World!"
-
-
-#### STEP 3 :  Compiling and Running MQTT Subscriber written in C
-
-    1. cd src/
-    2. compile mqtt subscriber
-        
-       $gcc -L/usr/local/lib/ -lpaho-mqtt3a -lpaho-mqtt3as -lpaho-mqtt3cs -lpaho-mqtt3c  mqtt_subscriber.c -o subscriber
-
-    3. run mqtt subscriber
-
-       $./subscriber
-
-       [ subscriber will be waiting for message in topic named mytopic ]
-
-#### STEP 4 :  Compiling and Running MQTT Publisher written in C
-
-    1. cd src/
-    2. compile mqtt publisher
-        
-       $gcc -L/usr/local/lib/ -lpaho-mqtt3a -lpaho-mqtt3as -lpaho-mqtt3cs -lpaho-mqtt3c  mqtt_publisher.c -o publisher
-
-    3. run mqtt publisher
-
-       $./publisher
-
-       [ publisher will be send message to topic named mytopic and exit]
-
-
+    1. cd examples
+    2. ./compile.sh
+    3. ./mqtt_sub   # This executable starts mqtt subscriber
+    4. ./mqtt_pub   # This executable starts mqtt publisher
